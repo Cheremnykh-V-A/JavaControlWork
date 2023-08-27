@@ -1,19 +1,19 @@
 package ControlWork;
 
-import ControlWork.Toy;
-
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
 
-public class ToyStore {
+public class ToyShop {
+
     private List<Toy> toys;
     private List<Toy> prizeToys;
 
-    public void ToyShop() {
+    public ToyShop() {
         toys = new ArrayList<>();
         prizeToys = new ArrayList<>();
     }
@@ -22,43 +22,90 @@ public class ToyStore {
         toys.add(toy);
     }
 
-    public void updateToyFrequency(int toyId, int newFrequency) {
+    public void setToyWeight(int toyId, int weight) {
         for (Toy toy : toys) {
             if (toy.getId() == toyId) {
-                toy.setFrequency(newFrequency);
+                toy.setWeight(weight);
                 break;
             }
         }
     }
 
-    public void initiateRaffle() {
+    public void playGame() {
         Random random = new Random();
 
+        int totalWeight = 0;
         for (Toy toy : toys) {
-            int randomNumber = random.nextInt(100) + 1;
-            if (randomNumber <= toy.getFrequency()) {
-                prizeToys.add(toy);
-                toy.decreaseQuantity();
+            totalWeight += toy.getWeight();
+        }
+
+        if (totalWeight <= 0) {
+            System.out.println("Нет доступных игрушек");
+            return;
+        }
+
+        for (int i = 0; i < 10; i++) {
+            if (totalWeight <= 0) {
+                break;
+            }
+
+            int randomNumber = random.nextInt(totalWeight) + 1;
+
+            for (Toy toy : toys) {
+                randomNumber -= toy.getWeight();
+
+                if (randomNumber <= 0) {
+                    prizeToys.add(toy);
+                    toy.decreaseQuantity();
+                    totalWeight -= toy.getWeight();
+
+                    System.out.println("Выиграна игрушка: " + toy.getName());
+                    break;
+                }
             }
         }
     }
 
-    public boolean hasPrizeToys() {
-        return !prizeToys.isEmpty();
-    }
-
-    public Toy getPrizeToy() {
-        Toy prizeToy = prizeToys.get(0);
-        prizeToys.remove(0);
-        return prizeToy;
-    }
-
-    public void writePrizeToyToFile(Toy prizeToy) {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("prize_toys.txt", true))) {
-            writer.write(prizeToy.getId() + "," + prizeToy.getName());
-            writer.newLine();
+    public void savePrizeToysToFile(String filename) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(filename))) {
+            for (Toy toy : prizeToys) {
+                writer.write(toy.getName() + "\n");
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public static void main(String[] args) {
+        ToyShop toyShop = new ToyShop();
+
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Введите количество игрушек для розыгрыша:");
+        int numOfToys = scanner.nextInt();
+
+        for (int i = 0; i < numOfToys; i++) {
+            System.out.println("Введите id игрушки:");
+            int id = scanner.nextInt();
+
+            System.out.println("Введите название игрушки:");
+            String name = scanner.next();
+
+            System.out.println("Введите количество данных игрушек:");
+            int quantity = scanner.nextInt();
+
+            System.out.println("Введите частоту выпадения игрушки (вес в % от 100):");
+            int weight = scanner.nextInt();
+
+            Toy toy = new Toy(id, name, quantity, weight);
+            toyShop.addToy(toy);
+        }
+
+        toyShop.playGame();
+
+        System.out.println("Введите имя файла для сохранения призовых игрушек:");
+        String filename = scanner.next();
+
+        toyShop.savePrizeToysToFile(filename);
     }
 }
